@@ -3,7 +3,7 @@ import threading
 from telethon import TelegramClient, events
 from .models import AirRaidAlertMessageParser
 
-async def event_handler(client, event):
+async def event_handler(app, client, socketio, event):
     message = event.message
     message_parser = AirRaidAlertMessageParser(message)
     region_id = message_parser.region_id()
@@ -19,10 +19,11 @@ async def event_handler(client, event):
     }
 
     # Update the country status based on the message type
-    if message_parser.is_an_air_raid_alert():
-        app.country.air_raid_alert(region_id, message_parser.timestamp)
-    else:
-        app.country.air_raid_end(region_id, message_parser.timestamp)
+    with app.app_context():
+      if message_parser.is_an_air_raid_alert():
+          app.country.air_raid_alert(region_id, message_parser.timestamp)
+      else:
+          app.country.air_raid_end(region_id, message_parser.timestamp)
 
     socketio.emit('event', event_data)
 
@@ -38,7 +39,8 @@ def initialize_telegram_client(app, socketio):
                     await client.disconnect()
 
                 client = await create_client()
-                client.add_event_handler(lambda e: event_handler(client, e), events.NewMessage(chats=[AirRaidAlertMessageParser.CHANNEL_NAME]))
+                client.add_event_handler(lambda e: event_handler(app, client, socketio, e),
+                                         events.NewMessage(chats=[AirRaidAlertMessageParser.CHANNEL_NAME]))
                 await client.start()
                 await async_fetch_initial_alerts(client, app.country)
                 await client.run_until_disconnected()
