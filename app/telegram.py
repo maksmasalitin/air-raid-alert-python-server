@@ -24,12 +24,12 @@ async def event_handler(app, client, socketio, event):
           app.country.air_raid_alert(region_id, message_parser.timestamp)
       else:
           app.country.air_raid_end(region_id, message_parser.timestamp)
-
     socketio.emit('event', event_data)
 
 def initialize_telegram_client(app, socketio):
     async def create_client():
-        return TelegramClient('Map manager', app.config['TELEGRAM_API_ID'], app.config['TELEGRAM_API_HASH'])
+        return TelegramClient(app.config['TELEGRAM_SESSION_FILE_PATH'],
+                              app.config['TELEGRAM_API_ID'], app.config['TELEGRAM_API_HASH'])
 
     async def run_client():
         client = None
