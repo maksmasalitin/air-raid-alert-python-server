@@ -29,8 +29,8 @@ class AirRaidAlertMessageParser:
     'Чернігівська_область': 25
   }
 
-  ALERT_MESSAGE = "\N{Large Red Circle} Тривога"
-  END_MESSAGE = "\N{Large Green Circle} Відбій тривоги"
+  ALERT_MESSAGE = "\U0001F534 Тривога"
+  END_MESSAGE = "\U0001F7E2 Відбій тривоги"
 
   def __init__(self, message):
     self.text = message.message
