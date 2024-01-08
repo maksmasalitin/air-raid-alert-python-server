@@ -21,14 +21,23 @@ def get_all_region_statuses(country, is_alert_param=None):
         is_alert = region.is_alert
         message = AirRaidAlertMessageParser.ALERT_MESSAGE if is_alert else AirRaidAlertMessageParser.END_MESSAGE
         timestamp = region.last_change_at.isoformat() if region.last_change_at else None
+        # Find the region name using the region id in a more readable way
+        region_name = get_region_name(region.id)
 
         if is_alert_param is None or is_alert == is_alert_param:
             region_statuses[region.id] = {
                 'is_alert': is_alert,
                 'message': message,
-                'timestamp': timestamp
+                'timestamp': timestamp,
+                'name': region_name
             }
     return region_statuses
+
+def get_region_name(region_id):
+    for name, id in AirRaidAlertMessageParser.REGION_MAP.items():
+        if id == region_id:
+            return name.replace('_', ' ')
+    return "Unknown Region"
 
 @bp.route('/alerts')
 @authenticate
