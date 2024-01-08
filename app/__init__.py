@@ -6,6 +6,7 @@ socketio = SocketIO()
 
 def create_app():
     app = Flask(__name__)
+    app.config['JSON_AS_ASCII'] = False
     app.config.from_object('config.Config')
 
     socketio.init_app(app)
