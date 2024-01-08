@@ -51,6 +51,14 @@ def alerts():
     country = current_app.country
     return jsonify(get_all_region_statuses(country, is_alert_param))
 
+@bp.route('/active-alert-ids')
+@authenticate
+def active_alert_ids():
+    country = current_app.country
+    active_region_ids = [region.id for region in country.regions if region.is_alert]
+
+    return jsonify(active_region_ids)
+
 @bp.route('/ping')
 @authenticate
 def ping():
