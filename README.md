@@ -2,8 +2,6 @@ Server to provide the API for the air raid alerts. All information is taken from
 
 ## Installation
 
-
-
 clone the repo
 ```bash
 git clone git@github.com:maksmasalitin/air-raid-alert-python-server.git
@@ -35,79 +33,9 @@ Telegram will ask you to enter your phone number and then the code that you will
 
 ## API
 
-Each region has own id. To identify the region id you can use table from here: https://en.wikipedia.org/wiki/Administrative_divisions_of_Ukraine
+The server implements websocket protocol. https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API/Writing_WebSocket_servers
 
-### 1. Alerts Endpoint (`/alerts`)
-Fetch the current alert statuses for regions.
+You can connect to the server and receive the air raid alerts in real time. To authourize you need to send the token that configured in .env file. Right after handshake you need to send the token as the first message.
+After this server will send you an array with all region ids where the air raid alert is active.
 
-- **Method:** GET
-- **URL:** `/alerts`
-- **Parameters:**
-    - `auth_key` (string): Required. Authentication key.
-    - `is_alert` (boolean): Optional. Filter by alert status (`true` or `false`).
-
-#### Example Usage with `curl`:
-```bash
-curl "http://<SERVER_URL>:<PORT>/alerts?auth_key=<YOUR_AUTH_KEY>&is_alert=true"
-```
-
-#### Example of JSON output:
-```json
-{
-  "8": {
-    "is_alert": false,
-    "message": "🟢 Відбій тривоги",
-    "timestamp": "2023-12-18T09:02:06+00:00"
-  },
-  "10": {
-    "is_alert": true,
-    "message": "🔴 Тривога",
-    "timestamp": "2023-12-18T09:05:30+00:00"
-  }
-}
-
-```
-
-### 2. Receive alerts by websocket:
-
-Establish a real-time connection to receive alert updates.
-
-- **URL:** `ws://<SERVER_URL>:<PORT>`
-- **Query Parameter:**
-    - `auth_key` (string): Required. Authentication key for establishing the connection.
-
-#### Example Usage:
-To connect to the WebSocket server using `curl`, use the following command:
-```bash
-curl --include \
-     --no-buffer \
-     --header "Connection: Upgrade" \
-     --header "Upgrade: websocket" \
-     --header "Sec-WebSocket-Key: SGVsbG8sIHdvcmxkIQ==" \
-     --header "Sec-WebSocket-Version: 13" \
-     "http://<SERVER_URL>:<PORT>/socket.io/?EIO=4&transport=websocket&auth_key=<YOUR_AUTH_KEY>"
-```
-#### Handling WebSocket Events
-
-When a WebSocket event occurs, a message in the following format will be sent to the client:
-
-Event Format:
-```json
-
-{
-"region_id": 8,
-"timestamp": "2023-12-18T09:02:06+00:00",
-"event": "air_raid_end"
-}
-
-```
-
-#### Description
-- region_id (integer): The ID of the region for which the alert status has changed.
-- timestamp (string): The timestamp of when the alert status was updated.
-- event (string): The type of event, either `air_raid_alert` or `air_raid_end`.
-
-## Additional notes
-
-- It has /ping endpoint to check if server is alive.
-- It has autoreconnect for telegram client, e.g. if network connection is lost, it will try to reconnect.
+See cient example in examples folder.

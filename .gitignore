@@ -13,3 +13,7 @@ __pycache__/
 # Telegram sessions
 *.session
 *.session-journal
+
+# System files
+.DS_Store
+

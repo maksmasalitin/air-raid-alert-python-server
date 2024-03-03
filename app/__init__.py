@@ -1,25 +1,18 @@
-from flask import Flask
-from flask_socketio import SocketIO
+from threading import Thread
+import asyncio
+from config import Config
 from .models import Country
+from .telegram import initialize_telegram_client
+from .websocket_server import start_websocket_server
 
-socketio = SocketIO()
-
-def create_app():
-    app = Flask(__name__)
-    app.config['JSON_AS_ASCII'] = False
-    app.config.from_object('config.Config')
-
-    socketio.init_app(app)
-
+async def create_app():
+    app = type('App', (object,), {})()
     app.country = Country()
+    app.config = Config
 
-    from .routes import bp as routes_bp
-    app.register_blueprint(routes_bp)
+    await initialize_telegram_client(app)
 
-    from .telegram import initialize_telegram_client
-    initialize_telegram_client(app, socketio)
-
-    # Import and use socket events
-    from . import socket_events  # This import registers the socket event handlers
+    asyncio.create_task(start_websocket_server(app))
+    print("WebSocket server started and accepting connections")
 
     return app

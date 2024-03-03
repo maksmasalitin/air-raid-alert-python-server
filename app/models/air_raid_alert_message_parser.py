@@ -1,5 +1,3 @@
-
-
 class AirRaidAlertMessageParser:
   CHANNEL_NAME = 'air_alert_ua'
   REGION_MAP = {
@@ -34,7 +32,6 @@ class AirRaidAlertMessageParser:
 
   def __init__(self, message):
     self.text = message.message
-    self.timestamp = message.date
 
   def is_an_air_raid_alert(self):
     return "Повітряна тривога" in self.text
