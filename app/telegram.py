@@ -3,6 +3,10 @@ import threading
 from telethon import TelegramClient, events
 from .models import AirRaidAlertMessageParser
 from .websocket_server import send_event
+## If you want to see telethon logs, uncomment the next lines
+# import logging
+#
+# logging.basicConfig(format='[%(levelname) 5s/%(asctime)s] %(name)s: %(message)s', level=logging.WARNING)
 
 async def event_handler(app, client, event):
     message = event.message
@@ -21,23 +25,21 @@ async def event_handler(app, client, event):
     await update_clients(app.country)
 
 async def initialize_telegram_client(app):
-    async def create_client():
-        return TelegramClient(app.config.TELEGRAM_SESSION_FILE_PATH,
-                              app.config.TELEGRAM_API_ID,
-                              app.config.TELEGRAM_API_HASH)
+    client = TelegramClient(app.config.TELEGRAM_SESSION_FILE_PATH,
+                            app.config.TELEGRAM_API_ID,
+                            app.config.TELEGRAM_API_HASH,
+                            sequential_updates=True)
 
-    async def run_client():
-        client = await create_client()
-        chats = [AirRaidAlertMessageParser.CHANNEL_NAME]
-        client.add_event_handler(lambda e: event_handler(app, client, e), events.NewMessage(chats=chats))
-        await client.start()
-        await fetch_initial_alerts(client, app.country)
-        await update_clients(app.country)
-        await client.run_until_disconnected()
+    chats = [AirRaidAlertMessageParser.CHANNEL_NAME]
+    client.add_event_handler(lambda e: event_handler(app, client, e), events.NewMessage(chats=chats))
+    await client.start()
+    print('Telegram client started!')
+    await async_fetch_initial_alerts(client, app.country)
+    await update_clients(app.country)
 
-    threading.Thread(target=lambda: asyncio.run(run_client()), daemon=True).start()
+    return client
 
-async def fetch_initial_alerts(client, country):
+async def async_fetch_initial_alerts(client, country):
     for tag, region_id in AirRaidAlertMessageParser.REGION_MAP.items():
         messages = await client.get_messages(AirRaidAlertMessageParser.CHANNEL_NAME, search=tag, limit=1)
         if messages:
