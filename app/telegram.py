@@ -13,6 +13,9 @@ async def event_handler(app, client, event):
     message_parser = AirRaidAlertMessageParser(message)
     region_id = message_parser.region_id()
 
+    if region_id == AirRaidAlertMessageParser.IGNORED:
+        return
+
     if region_id is None:
         print("Unknown region in message: %s" % message_parser.text)
         return
@@ -40,7 +43,7 @@ async def initialize_telegram_client(app):
     return client
 
 async def async_fetch_initial_alerts(client, country):
-    for tag, region_id in AirRaidAlertMessageParser.REGION_MAP.items():
+    for tag, region_id in AirRaidAlertMessageParser.get_all_regions():
         messages = await client.get_messages(AirRaidAlertMessageParser.CHANNEL_NAME, search=tag, limit=1)
         if messages:
             message_parser = AirRaidAlertMessageParser(messages[0])

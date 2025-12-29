@@ -1,46 +1,93 @@
+import os
+import re
+
 class AirRaidAlertMessageParser:
-  CHANNEL_NAME = 'air_alert_ua'
-  REGION_MAP = {
-    'Вінницька_область': 2,
-    'Волинська_область': 3,
-    'Дніпропетровська_область': 4,
-    'Донецька_область': 5,
-    'Житомирська_область': 6,
-    'Закарпатська_область': 7,
-    'Запорізька_область': 8,
-    'ІваноФранківська_область': 9,
-    'Київська_область': 10,
-    'Кіровоградська_область': 11,
-    'Луганська_область': 12,
-    'Львівська_область': 13,
-    'Миколаївська_область': 14,
-    'Одеська_область': 15,
-    'Полтавська_область': 16,
-    'Рівненська_область': 17,
-    'Сумська_область': 18,
-    'Тернопільська_область': 19,
-    'Харківська_область': 20,
-    'Херсонська_область': 21,
-    'Хмельницька_область': 22,
-    'Черкаська_область': 23,
-    'Чернівецька_область': 24,
-    'Чернігівська_область': 25
-  }
+    CHANNEL_NAME = 'air_alert_ua'
+    IGNORED = "IGNORED"
 
-  ALERT_MESSAGE = "\U0001F534 Тривога"
-  END_MESSAGE = "\U0001F7E2 Відбій тривоги"
+    _KEYWORDS_MAP = None
+    _CENTERS_MAP = None
+    _REGION_NAMES = None
 
-  def __init__(self, message):
-    self.text = message.message
+    ALERT_MESSAGE = "\U0001F534 Тривога"
+    END_MESSAGE = "\U0001F7E2 Відбій тривоги"
 
-  def is_an_air_raid_alert(self):
-    return "Повітряна тривога" in self.text
+    def __init__(self, message):
+        self.text = message.message
+        self._load_config()
 
-  def region_id(self):
-    for tag, id in self.REGION_MAP.items():
-      if tag in self.text:
-        return id
-    return None
+    @classmethod
+    def _load_config(cls):
+        if cls._KEYWORDS_MAP is not None:
+            return
 
-  def status_text(self):
-    return self.ALERT_MESSAGE if self.is_an_air_raid_alert() else self.END_MESSAGE
+        cls._KEYWORDS_MAP = {}
+        cls._CENTERS_MAP = {}
+        cls._REGION_NAMES = {}
+
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        keywords_dir = os.path.abspath(os.path.join(base_dir, '..', '..', 'regions_keywords'))
+
+        if not os.path.exists(keywords_dir):
+            return
+
+        for filename in os.listdir(keywords_dir):
+            if not filename.endswith('.yaml'):
+                continue
+            
+            filepath = os.path.join(keywords_dir, filename)
+            region_id = None
+            region_name = None
+            center_tag = None
+            keywords = []
+
+            with open(filepath, 'r', encoding='utf-8') as f:
+                for line in f:
+                    line = line.strip()
+                    if line.startswith('id:'):
+                        region_id = int(line.split('id:')[1].strip())
+                    elif line.startswith('name:'):
+                        region_name = line.split('name:')[1].strip()
+                    elif line.startswith('center_region:'):
+                        center_tag = line.split('center_region:')[1].strip().strip('"\'')
+                    elif line.startswith('-'):
+                        kw = line.lstrip('- ').strip().strip('"\'')
+                        if kw:
+                            keywords.append(kw)
+
+            if region_id is not None:
+                cls._REGION_NAMES[region_id] = region_name
+                cls._CENTERS_MAP[region_id] = center_tag
+                for kw in keywords:
+                    cls._KEYWORDS_MAP[kw] = region_id
+
+    def is_an_air_raid_alert(self):
+        return "Повітряна тривога" in self.text
+
+    def region_id(self):
+        found_hashtags = re.findall(r'#\w+', self.text)
+        
+        known_region_detected = False
+
+        for tag in found_hashtags:
+            region_id = self._KEYWORDS_MAP.get(tag)
+            if region_id is None:
+                continue
+
+            if tag == self._CENTERS_MAP.get(region_id):
+                return region_id
+            
+            known_region_detected = True
+
+        if known_region_detected:
+            return self.IGNORED
+        
+        return None
+
+    def status_text(self):
+        return self.ALERT_MESSAGE if self.is_an_air_raid_alert() else self.END_MESSAGE
+
+    @classmethod
+    def get_all_regions(cls):
+        cls._load_config()
+        return [(cls._CENTERS_MAP[rid], rid) for rid in sorted(cls._REGION_NAMES.keys()) if cls._CENTERS_MAP.get(rid)]

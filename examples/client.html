@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Air Raid Alert Client</title>
+    <style>
+        body { font-family: sans-serif; max-width: 800px; margin: 2rem auto; padding: 0 1rem; }
+        .config { background: #f4f4f4; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; }
+        .status { margin-bottom: 1rem; font-weight: bold; }
+        .status.connected { color: green; }
+        .status.disconnected { color: red; }
+        .status.error { color: orange; }
+        #log { background: #333; color: #fff; padding: 1rem; border-radius: 4px; height: 300px; overflow-y: auto; font-family: monospace; }
+        .alerts { margin-top: 1rem; display: flex; flex-wrap: wrap; gap: 0.5rem; }
+        .badge { padding: 0.5rem 1rem; border-radius: 20px; background: #ddd; }
+        .badge.active { background: #ff4444; color: white; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>Air Raid Alert WebSocket Client</h1>
+    
+    <div class="config">
+        <label>Server URL: <input type="text" id="url" value="ws://localhost:6789" style="width: 250px;"></label>
+        <label>Auth Key: <input type="password" id="authKey" placeholder="Enter key from .env"></label>
+        <button onclick="connect()" id="connectBtn">Connect</button>
+        <button onclick="disconnect()" id="disconnectBtn" disabled>Disconnect</button>
+    </div>
+
+    <div id="status" class="status disconnected">Status: Disconnected</div>
+
+    <div>
+        <h3>Active Alerts (Region IDs):</h3>
+        <div id="alertsList" class="alerts">
+            <!-- Badges will appear here -->
+            <span class="badge">None</span>
+        </div>
+    </div>
+
+    <h3>Log:</h3>
+    <div id="log"></div>
+
+    <script>
+        let ws = null;
+        const logDiv = document.getElementById('log');
+        const statusDiv = document.getElementById('status');
+        const alertsList = document.getElementById('alertsList');
+        const connectBtn = document.getElementById('connectBtn');
+        const disconnectBtn = document.getElementById('disconnectBtn');
+
+        function log(msg) {
+            const line = document.createElement('div');
+            line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            logDiv.prepend(line);
+        }
+
+        function setStatus(state, text) {
+            statusDiv.className = `status ${state}`;
+            statusDiv.textContent = `Status: ${text}`;
+            connectBtn.disabled = state === 'connected';
+            disconnectBtn.disabled = state !== 'connected';
+        }
+
+        function updateAlerts(regionIds) {
+            alertsList.innerHTML = '';
+            if (!Array.isArray(regionIds)) {
+                log('Error: Received data is not an array');
+                return;
+            }
+
+            if (regionIds.length === 0) {
+                alertsList.innerHTML = '<span class="badge">None</span>';
+                return;
+            }
+
+            regionIds.sort((a, b) => a - b).forEach(id => {
+                const badge = document.createElement('span');
+                badge.className = 'badge active';
+                badge.textContent = `Region ${id}`;
+                alertsList.appendChild(badge);
+            });
+        }
+
+        function connect() {
+            const url = document.getElementById('url').value;
+            const authKey = document.getElementById('authKey').value;
+
+            if (!authKey) {
+                alert('Please enter an Auth Key');
+                return;
+            }
+
+            try {
+                ws = new WebSocket(url);
+            } catch (e) {
+                log('Error creating WebSocket: ' + e.message);
+                return;
+            }
+
+            ws.onopen = () => {
+                log('Connected to ' + url);
+                setStatus('connected', 'Connected');
+                // Send Auth Key immediately
+                log('Sending Auth Key...');
+                ws.send(authKey);
+            };
+
+            ws.onmessage = (event) => {
+                log('Received: ' + event.data);
+                try {
+                    const data = JSON.parse(event.data);
+                    if (data.error) {
+                        log('Server Error: ' + data.error);
+                        ws.close();
+                    } else {
+                        updateAlerts(data);
+                    }
+                } catch (e) {
+                    log('Error parsing JSON: ' + e.message);
+                }
+            };
+
+            ws.onclose = (event) => {
+                log(`Disconnected (Code: ${event.code})`);
+                setStatus('disconnected', 'Disconnected');
+                ws = null;
+            };
+
+            ws.onerror = (error) => {
+                log('WebSocket Error');
+                setStatus('error', 'Error');
+            };
+        }
+
+        function disconnect() {
+            if (ws) {
+                ws.close();
+            }
+        }
+    </script>
+</body>
+</html>

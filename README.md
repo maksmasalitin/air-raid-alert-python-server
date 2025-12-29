@@ -17,19 +17,49 @@ install dependencies
 pip3 install -r requirements.txt
 ```
 
+## Configuration
+
+1.  **Obtain Telegram Credentials:**
+    *   Go to https://my.telegram.org and log in.
+    *   Click on "API development tools".
+    *   Create a new application to get your `App api_id` and `App api_hash`.
+
+2.  **Setup Environment:**
+    *   Copy the example environment file:
+        ```bash
+        cp .env.example .env
+        ```
+    *   Edit `.env` and fill in the values:
+        *   `TELEGRAM_API_ID`: Your App `api_id`.
+        *   `TELEGRAM_API_HASH`: Your App `api_hash`.
+        *   `AUTH_KEYS`: A comma-separated list of secret tokens (e.g., `mysecretkey1,securetoken2`). Clients must send one of these keys to authenticate with the WebSocket server.
+
+## First Run (Session Setup)
+
+Before running the server, you must authenticate with Telegram to generate a session file.
+
+Run the setup script:
+```bash
+python3 scripts/setup_session.py
+```
+Follow the interactive prompts to enter your phone number and the verification code sent to your Telegram account. This will create a `telegram-session.session` file in the project root.
+
+## Health Check
+
+To verify that your configuration is correct and the Telegram session is valid without starting the full server:
+
+```bash
+python3 scripts/check_status.py
+```
+If successful, this will print the last alert message from the `@air_alert_ua` channel.
+
 ## Usage
 
-setup environment variables using ENV variables or .env file:
-```bash
-cp .env.example .env
-```
-run the server
+Run the server:
 
 ```bash
 python3 run.py
 ```
-
-Telegram will ask you to enter your phone number and then the code that you will receive. After that you will be able to use the API.
 
 ## API
 

@@ -2,6 +2,7 @@
 .env
 .venv
 env/
+venv/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -16,4 +17,5 @@ __pycache__/
 
 # System files
 .DS_Store
-
+messages.log
+openspec/changes/archive/

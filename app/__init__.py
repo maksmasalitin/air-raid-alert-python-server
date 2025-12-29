@@ -16,6 +16,10 @@ async def create_app():
     websocket_task = asyncio.create_task(start_websocket_server(app))
 
     app.tasks = [telegram_task, websocket_task]
-    print("WebSocket server started and accepting connections")
+    
+    print("\n" + "="*60)
+    print(f"WebSocket server started at: ws://localhost:6789")
+    print("Instruction: To connect, send your AUTH_KEY as the FIRST message.")
+    print("="*60 + "\n")
 
     return app
